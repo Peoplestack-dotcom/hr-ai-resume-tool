@@ -86,27 +86,28 @@ if (data && data.length > 0 && !selectedJobId) {
       .select("id, title")
       .eq("recruiter_id", uid)
 
-    const jobIds = jobsData.map(j => j.id)
+   const jobIds = (jobsData || []).map((j) => j.id)
 
-    if (jobIds.length === 0) {
-      setApplications([])
-      return
-    }
+if (jobIds.length === 0) {
+  setApplications([])
+  return
+}
 
-    const { data: appsData } = await supabase
-      .from("applications")
-      .select("*")
-      .in("job_id", jobIds)
+const { data: appsData } = await supabase
+  .from("applications")
+  .select("*")
+  .in("job_id", jobIds)
+
 const jobsMap = Object.fromEntries(
-  jobsData.map((j) => [j.id, j])
+  (jobsData || []).map((j) => [j.id, j])
 )
 
-    const finalApps = appsData.map((app) => ({
-      ...app,
-      jobs: jobsMap[app.job_id]
-    }))
+const finalApps = (appsData || []).map((app) => ({
+  ...app,
+  jobs: jobsMap[app.job_id],
+}))
 
-    setApplications(finalApps)
+setApplications(finalApps)
   }
 
   // 🔥 FIXED LOCATION (IMPORTANT)
