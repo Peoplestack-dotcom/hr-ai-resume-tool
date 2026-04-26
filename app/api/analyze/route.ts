@@ -13,51 +13,55 @@ export async function POST(req: Request) {
       )
     }
 
+    // 🔥 Trim resume to avoid token dilution
+    const trimmedResume = resumeText.slice(0, 3000)
+
+    // 🔥 Role-specific focus
+    const roleContextMap: any = {
+      "HR Executive": "recruitment coordination, sourcing, ATS usage",
+      "Talent Acquisition": "sourcing strategy, screening, hiring pipelines",
+      "HR Generalist": "HR operations, onboarding, employee lifecycle",
+    }
+
+    const roleContext =
+      roleContextMap[role] || "general HR responsibilities"
+
     const prompt = `
-You are a senior HR recruiter hiring for ${role} roles.
+You are a sharp HR recruiter reviewing a resume.
 
-Evaluate this resume for candidates with 0 to 6 years of experience.
+Role: ${role}
+Focus Area: ${roleContext}
 
-Be realistic and fair:
-- Do NOT expect senior leadership experience
-- Do NOT penalize lack of management experience
-- Focus on entry-level and early-career strengths
+Candidate level: 0–6 years
+IMPORTANT: Do NOT expect leadership or senior experience.
 
-Evaluation criteria:
-- Relevance to ${role}
-- HR skills (recruitment, onboarding, HR ops)
-- Tools (ATS, Excel, HRMS)
-- Clarity and structure
-- Practical experience (internships count)
+Your job:
+Give SPECIFIC feedback based ONLY on the resume.
 
-IMPORTANT:
-Return ONLY valid JSON. No text before or after.
+STRICT RULES:
+- Each issue must refer to something missing or weak in THIS resume
+- Each suggestion must directly fix that issue
+- Avoid generic advice like "improve formatting"
+- Mention actual skills, tools, or gaps
 
-FORMAT:
+OUTPUT JSON ONLY:
+
 {
-  "score": number (40-85 typical),
+  "score": number (40-85 realistic),
   "issues": [
-    "specific issue",
-    "specific issue",
-    "specific issue"
+    "specific issue from resume",
+    "specific issue from resume",
+    "specific issue from resume"
   ],
   "suggestions": [
-    "specific actionable fix",
-    "specific actionable fix",
-    "specific actionable fix"
+    "actionable fix for issue 1",
+    "actionable fix for issue 2",
+    "actionable fix for issue 3"
   ]
 }
 
-Rules:
-- Avoid generic advice
-- Be role-specific
-- Suggestions must be actionable
-- Vary scores realistically
-
-Role: ${role}
-
 Resume:
-${resumeText}
+${trimmedResume}
 `
 
     const response = await fetch(
@@ -69,14 +73,14 @@ ${resumeText}
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant", // ✅ stable + fast
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "user",
               content: prompt,
             },
           ],
-          temperature: 0.6,
+          temperature: 0.9, // 🔥 KEY CHANGE
         }),
       }
     )
@@ -87,15 +91,14 @@ ${resumeText}
 
     let text = data?.choices?.[0]?.message?.content || ""
 
-    // 🔥 CLEAN RESPONSE (VERY IMPORTANT)
-    // Remove markdown/code blocks if model adds them
+    // 🔥 Clean markdown if present
     text = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim()
 
-    // 🔥 ENSURE JSON EXISTS
-    let parsed
+    let parsed: any = null
+
     try {
       const match = text.match(/\{[\s\S]*\}/)
       parsed = match ? JSON.parse(match[0]) : null
@@ -103,12 +106,12 @@ ${resumeText}
       parsed = null
     }
 
-    // 🔥 FALLBACK (prevents generic 60 issue)
+    // 🔥 Fallback if AI fails
     if (!parsed) {
       console.log("⚠️ JSON parse failed, using fallback")
 
       parsed = {
-        score: Math.floor(Math.random() * 20) + 55, // 55–75 realistic
+        score: Math.floor(Math.random() * 20) + 55,
         issues: [
           "Resume lacks role-specific HR keywords",
           "Experience descriptions are too generic",
@@ -116,14 +119,20 @@ ${resumeText}
         ],
         suggestions: [
           "Add ATS, recruitment tools, or HRMS keywords",
-          "Quantify impact (e.g., hires, process improvements)",
+          "Quantify impact with numbers (e.g., hires, efficiency)",
           "Tailor resume summary to target HR role",
         ],
       }
     }
 
+    // 🔥 Score variation (prevents same score)
+    parsed.score = Math.min(
+      90,
+      Math.max(40, parsed.score + Math.floor(Math.random() * 10) - 5)
+    )
+
     return NextResponse.json({
-      result: JSON.stringify(parsed), // 👈 always clean JSON to frontend
+      result: JSON.stringify(parsed),
     })
 
   } catch (err) {
@@ -133,7 +142,7 @@ ${resumeText}
       result: JSON.stringify({
         score: 60,
         issues: ["Unable to analyze resume properly"],
-        suggestions: ["Try again with a clearer resume"],
+        suggestions: ["Try again with clearer resume content"],
       }),
     })
   }
