@@ -14,14 +14,13 @@ export default function CandidateDashboard() {
   const [jobSearch, setJobSearch] = useState("")
   const [appFilter, setAppFilter] = useState("all")
 
-  // ✅ FORM STATE
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [candidateName, setCandidateName] = useState("")
   const [candidatePhone, setCandidatePhone] = useState("")
   const [candidateLocation, setCandidateLocation] = useState("")
   const [resumeFile, setResumeFile] = useState<File | null>(null)
 
-  // ✅ AUTH
+  // AUTH
   useEffect(() => {
     let mounted = true
 
@@ -48,7 +47,7 @@ export default function CandidateDashboard() {
     }
   }, [])
 
-  // ✅ FETCH
+  // FETCH
   useEffect(() => {
     if (!userId || !authReady) return
     fetchJobs()
@@ -74,65 +73,58 @@ export default function CandidateDashboard() {
 
     const jobIds = appsData.map(a => a.job_id)
 
-   const { data: jobsData } = await supabase
-  .from("jobs")
-  .select("*")
-  .in("id", jobIds)
+    const { data: jobsData } = await supabase
+      .from("jobs")
+      .select("*")
+      .in("id", jobIds)
 
     const jobsMap = Object.fromEntries(
-  (jobsData || []).map((j) => [j.id, j])
-)
+      (jobsData || []).map((j) => [j.id, j])
+    )
 
     const finalApps = (appsData || []).map((app) => ({
-  ...app,
-  jobs: jobsMap[app.job_id]
-}))
       ...app,
-      jobs: jobsMap[app.job_id]
+      jobs: jobsMap[app.job_id],
     }))
 
     setApplications(finalApps)
     setAppliedJobs(appsData.map(a => String(a.job_id)))
   }
 
-  // ✅ SUBMIT APPLICATION (WITH RESUME FIX)
+  // APPLY
   const handleSubmitApplication = async () => {
     if (!userId || !selectedJob) return
+
     const { data: existingApps } = await supabase
-  .from("applications")
-  .select("*")
-  .eq("candidate_id", userId)
-  .limit(1)
+      .from("applications")
+      .select("*")
+      .eq("candidate_id", userId)
+      .limit(1)
 
-if (existingApps && existingApps.length > 0) {
-  const existing = existingApps[0]
+    if (existingApps && existingApps.length > 0) {
+      const existing = existingApps[0]
 
-  // 🔁 Reuse profile (skip form)
-  const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
-  const { error } = await supabase.from("applications").insert({
-    job_id: selectedJob.id,
-    candidate_id: userId,
-    candidate_name: existing.candidate_name,
-    candidate_email: user?.email,
-    candidate_phone: existing.candidate_phone,
-    candidate_location: existing.candidate_location,
-    resume_url: existing.resume_url,
-    status: "applied",
-  })
+      const { error } = await supabase.from("applications").insert({
+        job_id: selectedJob.id,
+        candidate_id: userId,
+        candidate_name: existing.candidate_name,
+        candidate_email: user?.email,
+        candidate_phone: existing.candidate_phone,
+        candidate_location: existing.candidate_location,
+        resume_url: existing.resume_url,
+        status: "applied",
+      })
 
-  if (error) {
-    console.error(error)
-    return alert("Failed to apply")
-  }
+      if (error) return alert("Failed to apply")
 
-  setAppliedJobs(prev => [...prev, String(selectedJob.id)])
-  fetchApplications(userId)
+      setAppliedJobs(prev => [...prev, String(selectedJob.id)])
+      fetchApplications(userId)
+      setSelectedJob(null)
 
-  setSelectedJob(null)
-
-  return alert("Applied using saved profile")
-}
+      return alert("Applied using saved profile")
+    }
 
     if (!candidateName || !candidatePhone || !candidateLocation) {
       return alert("Please fill all details")
@@ -148,13 +140,10 @@ if (existingApps && existingApps.length > 0) {
       const filePath = `candidate-resumes/${Date.now()}_${resumeFile.name}`
 
       const { error: uploadError } = await supabase.storage
-        .from("job-documents") // ✅ FIXED BUCKET
+        .from("job-documents")
         .upload(filePath, resumeFile)
 
-      if (uploadError) {
-        console.error(uploadError)
-        return alert("Resume upload failed")
-      }
+      if (uploadError) return alert("Resume upload failed")
 
       const { data } = supabase.storage
         .from("job-documents")
@@ -176,15 +165,11 @@ if (existingApps && existingApps.length > 0) {
       status: "applied",
     })
 
-    if (error) {
-      console.error(error)
-      return alert("Failed to apply")
-    }
+    if (error) return alert("Failed to apply")
 
     setAppliedJobs(prev => [...prev, String(selectedJob.id)])
     fetchApplications(userId)
 
-    // reset
     setSelectedJob(null)
     setCandidateName("")
     setCandidatePhone("")
@@ -193,22 +178,6 @@ if (existingApps && existingApps.length > 0) {
 
     alert("Application submitted successfully")
   }
-
-  // ✅ REALTIME
-  useEffect(() => {
-    if (!userId) return
-
-    const channel = supabase
-      .channel("candidate-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "applications" },
-        () => fetchApplications(userId)
-      )
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
-  }, [userId])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -273,100 +242,44 @@ if (existingApps && existingApps.length > 0) {
             />
 
             {filteredJobs.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white p-4 mb-4 rounded-xl shadow hover:shadow-md"
-              >
+              <div key={job.id} className="bg-white p-4 mb-4 rounded-xl shadow">
+
                 <h2 className="font-semibold text-lg">{job.title}</h2>
-                <p className="text-sm text-gray-600">{job.company}</p><h2 className="font-semibold text-lg">{job.title}</h2>
+                <p className="text-sm text-gray-600">{job.company}</p>
 
-<p className="text-sm text-gray-600">{job.company}</p>
+                {job.location && (
+                  <p className="text-sm text-gray-500 mt-1">📍 {job.location}</p>
+                )}
 
-{/* 📍 LOCATION */}
-{job.location && (
-  <p className="text-sm text-gray-500 mt-1">
-    📍 {job.location}
-  </p>
-)}
+                {(job.salary_min || job.salary_max) && (
+                  <p className="text-sm text-green-600 mt-1">
+                    💰 {job.salary_min} - {job.salary_max}
+                  </p>
+                )}
 
-{/* 💰 SALARY */}
-{(job.salary_min || job.salary_max) && (
-  <p className="text-sm text-green-600 mt-1">
-    💰 {job.salary_min} - {job.salary_max}
-  </p>
-)}
+                {job.description && (
+                  <div className="bg-gray-100 p-2 mt-3 rounded text-sm">
+                    {job.description}
+                  </div>
+                )}
 
-{/* 📄 JOB DESCRIPTION */}
-{job.description && (
-  <div className="bg-gray-100 p-2 mt-3 rounded text-sm text-gray-700">
-    {job.description}
-  </div>
-)}
-{job.document_url && (
-  <a
-    href={job.document_url}
-    target="_blank"
-    className="text-blue-600 underline text-sm mt-2 block"
-  >
-    📄 View Job Description File
-  </a>
-)}
+                {job.document_url && (
+                  <a href={job.document_url} target="_blank" className="text-blue-600 underline text-sm mt-2 block">
+                    📄 View Job Description File
+                  </a>
+                )}
 
                 {appliedJobs.includes(String(job.id)) ? (
                   <button className="bg-gray-400 text-white mt-3 px-4 py-1 rounded-full">
                     Applied
                   </button>
                 ) : (
-                 <button
-  onClick={async () => {
-    if (!userId) return
-
-    // 🔍 check existing profile
-    const { data: existingApps } = await supabase
-      .from("applications")
-      .select("*")
-      .eq("candidate_id", userId)
-      .limit(1)
-
-    // ✅ PROFILE EXISTS → DIRECT APPLY
-    if (existingApps && existingApps.length > 0) {
-      const existing = existingApps[0]
-
-      if (appliedJobs.includes(String(job.id))) {
-        return alert("Already applied")
-      }
-
-      const { data: { user } } = await supabase.auth.getUser()
-
-      const { error } = await supabase.from("applications").insert({
-        job_id: job.id,
-        candidate_id: userId,
-        candidate_name: existing.candidate_name,
-        candidate_email: user?.email,
-        candidate_phone: existing.candidate_phone,
-        candidate_location: existing.candidate_location,
-        resume_url: existing.resume_url,
-        status: "applied",
-      })
-
-      if (error) {
-        console.error(error)
-        return alert("Failed to apply")
-      }
-
-      setAppliedJobs(prev => [...prev, String(job.id)])
-      fetchApplications(userId)
-
-      return alert("Applied using saved profile")
-    }
-
-    // ❗ NO PROFILE → OPEN FORM
-    setSelectedJob(job)
-  }}
-  className="bg-blue-600 text-white mt-3 px-4 py-1 rounded-full"
->
-  Apply
-</button>
+                  <button
+                    onClick={() => setSelectedJob(job)}
+                    className="bg-blue-600 text-white mt-3 px-4 py-1 rounded-full"
+                  >
+                    Apply
+                  </button>
                 )}
               </div>
             ))}
@@ -385,106 +298,30 @@ if (existingApps && existingApps.length > 0) {
               <option value="active">Active</option>
               <option value="rejected">Rejected</option>
             </select>
-{filteredApplications.map((app) => (
-  <div
-    key={app.id}
-    className="bg-white p-4 mb-4 rounded-xl shadow hover:shadow-md transition"
-  >
-    {/* TITLE */}
-    <h2 className="font-semibold text-lg">{app.jobs?.title}</h2>
 
-    {/* COMPANY */}
-    <p className="text-sm text-gray-600">{app.jobs?.company}</p>
-
-    {/* LOCATION */}
-    {app.jobs?.location && (
-      <p className="text-sm text-gray-500 mt-1">
-        📍 {app.jobs.location}
-      </p>
-    )}
-
-    {/* SALARY (FIXED) */}
-    {(app.jobs?.salary_min || app.jobs?.salary_max) && (
-      <p className="text-sm text-green-600 mt-1">
-        💰 {app.jobs.salary_min} - {app.jobs.salary_max}
-      </p>
-    )}
-
-    {/* JOB DESCRIPTION */}
-    {app.jobs?.description && (
-      <div className="bg-gray-100 p-2 mt-3 rounded text-sm text-gray-700">
-        {app.jobs.description}
-      </div>
-    )}
-
-    {app.jobs?.document_url && (
-  <a
-    href={app.jobs.document_url}
-    target="_blank"
-    className="text-blue-600 underline text-sm mt-2 block"
-  >
-    📄 View Job Description File
-  </a>
-)}
-
-    {/* STATUS */}
-    <p className="mt-3 text-sm font-medium capitalize">
-      Status: {app.status}
-    </p>
-  </div>
-))}
+            {filteredApplications.map((app) => (
+              <div key={app.id} className="bg-white p-4 mb-4 rounded-xl shadow">
+                <h2>{app.jobs?.title}</h2>
+                <p>{app.jobs?.company}</p>
+                <p>Status: {app.status}</p>
+              </div>
+            ))}
           </>
         )}
 
-        {/* APPLY MODAL */}
+        {/* MODAL */}
         {selectedJob && (
-          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
+          <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-xl w-full max-w-md">
+              <h2>Apply for {selectedJob.title}</h2>
 
-              <h2 className="text-lg font-semibold mb-4">
-                Apply for {selectedJob.title}
-              </h2>
+              <input placeholder="Name" onChange={(e)=>setCandidateName(e.target.value)} className="border p-2 w-full mb-2"/>
+              <input placeholder="Phone" onChange={(e)=>setCandidatePhone(e.target.value)} className="border p-2 w-full mb-2"/>
+              <input placeholder="Location" onChange={(e)=>setCandidateLocation(e.target.value)} className="border p-2 w-full mb-2"/>
 
-              <input
-                placeholder="Full Name"
-                value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
-                className="w-full border p-2 mb-3 rounded"
-              />
-
-              <input
-                placeholder="Phone Number"
-                value={candidatePhone}
-                onChange={(e) => setCandidatePhone(e.target.value)}
-                className="w-full border p-2 mb-3 rounded"
-              />
-
-              <input
-                placeholder="Location"
-                value={candidateLocation}
-                onChange={(e) => setCandidateLocation(e.target.value)}
-                className="w-full border p-2 mb-3 rounded"
-              />
-
-              <input
-                type="file"
-                onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                className="mb-4"
-              />
-
-              <div className="flex justify-between">
-                <button onClick={() => setSelectedJob(null)}>
-                  Cancel
-                </button>
-
-                <button
-                  onClick={handleSubmitApplication}
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  Submit
-                </button>
-              </div>
-
+              <button onClick={handleSubmitApplication} className="bg-blue-600 text-white px-4 py-2 rounded">
+                Submit
+              </button>
             </div>
           </div>
         )}
