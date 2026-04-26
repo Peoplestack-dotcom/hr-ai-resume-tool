@@ -17,50 +17,111 @@ export async function POST(req: Request) {
     const trimmedResume = resumeText.slice(0, 3000)
 
     // 🔥 Role-specific focus
-    const roleContextMap: any = {
-      "HR Executive": "recruitment coordination, sourcing, ATS usage",
-      "Talent Acquisition": "sourcing strategy, screening, hiring pipelines",
-      "HR Generalist": "HR operations, onboarding, employee lifecycle",
-    }
+   const roleInstructions = {
+  "Talent Acquisition": `
+Focus on:
+- sourcing channels (LinkedIn, Naukri, referrals)
+- screening and interview coordination
+- ATS tools
+- hiring pipeline understanding
+`,
 
-    const roleContext =
-      roleContextMap[role] || "general HR responsibilities"
+  "HR Executive": `
+Focus on:
+- recruitment coordination
+- onboarding processes
+- documentation and HR operations
+- basic HRMS or admin exposure
+`,
 
-    const prompt = `
-You are a sharp HR recruiter reviewing a resume.
+  "HR Generalist": `
+Focus on:
+- employee lifecycle (joining to exit)
+- onboarding, engagement, policies
+- HR operations and compliance
+- exposure to HR processes beyond recruitment
+`,
+}[role] || ""
 
-Role: ${role}
-Focus Area: ${roleContext}
+const prompt = `
+You are an experienced HR recruiter reviewing a resume.
 
-Candidate level: 0–6 years
-IMPORTANT: Do NOT expect leadership or senior experience.
+ROLE: ${role}
 
-Your job:
-Give SPECIFIC feedback based ONLY on the resume.
+ROLE EXPECTATION:
+${roleInstructions}
+
+---
+
+STEP 1: UNDERSTAND THE RESUME
+
+Identify:
+- Candidate level (Intern / 1–3 yrs / 3–6 yrs)
+- Key HR skills
+- Tools used (ATS, Excel, HRMS, etc.)
+- Type of experience (internship / full-time)
+- Strength areas
+- Missing areas
+
+---
+
+STEP 2: EVALUATE BASED ON LEVEL
+
+INTERN (0–1 yr):
+- Focus on projects, internships, learning exposure
+- DO NOT expect ownership
+
+EARLY (1–3 yrs):
+- Focus on execution (tasks handled, coordination, basic ownership)
+
+MID (3–6 yrs):
+- Focus on ownership, impact, measurable outcomes
+
+---
+
+STEP 3: GIVE HIGH-QUALITY FEEDBACK
 
 STRICT RULES:
-- Each issue must refer to something missing or weak in THIS resume
-- Each suggestion must directly fix that issue
-- Avoid generic advice like "improve formatting"
-- Mention actual skills, tools, or gaps
+
+❌ No generic advice  
+❌ No copy-paste feedback  
+❌ No default "improve formatting" unless truly bad  
+
+✅ Each issue must be tied to THIS resume  
+✅ Each suggestion must directly fix that issue  
+✅ Mention specific HR tools / processes / gaps  
+
+---
 
 OUTPUT JSON ONLY:
 
 {
-  "score": number (40-85 realistic),
+  "score": number (45–85 realistic),
   "issues": [
-    "specific issue from resume",
-    "specific issue from resume",
-    "specific issue from resume"
+    "Specific issue based on resume",
+    "Specific issue based on resume",
+    "Specific issue based on resume"
   ],
   "suggestions": [
-    "actionable fix for issue 1",
-    "actionable fix for issue 2",
-    "actionable fix for issue 3"
+    "Actionable fix tied to issue 1",
+    "Actionable fix tied to issue 2",
+    "Actionable fix tied to issue 3"
   ]
 }
 
-Resume:
+---
+
+GOOD vs BAD:
+
+❌ BAD:
+"Add more HR keywords"
+
+✅ GOOD:
+"Resume does not mention any ATS tools like Greenhouse or Zoho Recruit, which are expected for ${role} roles"
+
+---
+
+RESUME:
 ${trimmedResume}
 `
 
