@@ -192,19 +192,23 @@ setApplications(finalApps)
 
   // REALTIME
   useEffect(() => {
-    if (!user) return
+  if (!user) return
 
-    const channel = supabase
-      .channel("recruiter-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "applications" },
-        () => fetchApplications(user.id)
-      )
-      .subscribe()
+  const channel = supabase
+    .channel("recruiter-live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "applications" },
+      () => {
+        fetchApplications(user.id)
+      }
+    )
+    .subscribe()
 
-    return () => supabase.removeChannel(channel)
-  }, [user])
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [user])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
