@@ -49,9 +49,9 @@ export default function Home() {
         if (match) parsed = JSON.parse(match[0])
       } catch {}
 
-      setScore(parsed.score || 60)
-      setIssues(parsed.issues || ["Resume needs improvement"])
-      setSuggestions(parsed.suggestions || [])
+      setScore(parsed.score ?? 60)
+      setIssues(parsed.issues ?? ["Resume needs improvement"])
+      setSuggestions(parsed.suggestions ?? [])
 
       setAnalysisDone(true)
       setIsAnalyzing(false)
@@ -93,6 +93,8 @@ export default function Home() {
     }
     fetchJobs()
   }, [])
+
+  const safeScore = score ?? 0
 
   const potentialScore =
     score !== null
@@ -152,7 +154,6 @@ export default function Home() {
 
             <div className="p-4 space-y-3">
 
-              {/* INPUT */}
               {!analysisDone && !isAnalyzing && (
                 <>
                   <select
@@ -181,7 +182,6 @@ export default function Home() {
                 </>
               )}
 
-              {/* LOADING */}
               {isAnalyzing && (
                 <div className="text-center py-6">
                   <div className="animate-spin h-8 w-8 border-b-2 border-black mx-auto"></div>
@@ -189,11 +189,9 @@ export default function Home() {
                 </div>
               )}
 
-              {/* RESULT */}
               {analysisDone && (
                 <div className="space-y-3">
 
-                  {/* FEEDBACK */}
                   <div className="flex gap-3 text-sm">
                     <button
                       onClick={() => saveFeedback("helpful")}
@@ -226,33 +224,30 @@ export default function Home() {
                     </p>
                   )}
 
-                  {/* SCORE */}
                   <div className="p-3 border rounded bg-gray-50">
                     <p className="text-xs">Based on {selectedRole}</p>
                     <p
                       className={`text-3xl font-bold ${
-                        score! < 60
+                        safeScore < 60
                           ? "text-red-600"
-                          : score! < 75
+                          : safeScore < 75
                           ? "text-yellow-600"
                           : "text-green-600"
                       }`}
                     >
-                      {score}/100
+                      {safeScore}/100
                     </p>
                     <p className="text-xs">
                       Improve to ~{potentialScore}
                     </p>
                   </div>
 
-                  {/* ISSUES */}
                   {issues.map((i, idx) => (
                     <div key={idx} className="bg-red-50 p-2 rounded text-sm">
                       ❌ {i}
                     </div>
                   ))}
 
-                  {/* SUGGESTIONS */}
                   <div className="blur-sm">
                     {suggestions.map((s, i) => (
                       <div key={i} className="bg-gray-100 p-2 rounded text-sm">
@@ -265,7 +260,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* STICKY CTA */}
             {analysisDone && (
               <div className="sticky bottom-0 bg-white border-t p-3 space-y-2">
 
