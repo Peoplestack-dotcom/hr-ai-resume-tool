@@ -80,10 +80,13 @@ export default function CandidateDashboard() {
   .in("id", jobIds)
 
     const jobsMap = Object.fromEntries(
-      jobsData.map(j => [j.id, j])
-    )
+  (jobsData || []).map((j) => [j.id, j])
+)
 
-    const finalApps = appsData.map(app => ({
+    const finalApps = (appsData || []).map((app) => ({
+  ...app,
+  jobs: jobsMap[app.job_id]
+}))
       ...app,
       jobs: jobsMap[app.job_id]
     }))
