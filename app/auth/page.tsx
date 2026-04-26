@@ -32,26 +32,29 @@ export default function AuthPage() {
 
       await redirectUser()
     } else {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
+     const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+})
 
-      if (error) {
-        alert(error.message)
-        setLoading(false)
-        return
-      }
+if (error) {
+  alert(error.message)
+  return
+}
 
-      // create profile
-      await supabase.from("profiles").insert([
-        {
-          id: data.user.id,
-          email,
-          role,
-        },
-      ])
+// 🔥 CRITICAL FIX
+if (!data?.user) {
+  alert("Signup failed. Please try again.")
+  return
+}
 
+await supabase.from("profiles").insert([
+  {
+    id: data.user.id,
+    email,
+    role,
+  },
+])
       alert("Signup successful. Please login.")
       setIsLogin(true)
     }
