@@ -99,7 +99,7 @@ if (data && data.length > 0 && !selectedJobId) {
       .in("job_id", jobIds)
 const jobsMap = Object.fromEntries(
   jobsData.map((j) => [j.id, j])
-
+)
 
     const finalApps = appsData.map((app) => ({
       ...app,
