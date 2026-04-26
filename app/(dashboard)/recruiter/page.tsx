@@ -97,12 +97,11 @@ if (data && data.length > 0 && !selectedJobId) {
       .from("applications")
       .select("*")
       .in("job_id", jobIds)
+const jobsMap = Object.fromEntries(
+  jobsData.map((j) => [j.id, j])
 
-    const jobsMap = Object.fromEntries(
-      jobsData.map(j => [j.id, j])
-    )
 
-    const finalApps = appsData.map(app => ({
+    const finalApps = appsData.map((app) => ({
       ...app,
       jobs: jobsMap[app.job_id]
     }))
