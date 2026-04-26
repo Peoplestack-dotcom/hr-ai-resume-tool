@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const trimmedResume = resumeText.slice(0, 3000)
 
     // 🔥 Role-specific focus
-   const roleInstructions = {
+  const roleInstructionsMap: Record<string, string> = {
   "Talent Acquisition": `
 Focus on:
 - sourcing channels (LinkedIn, Naukri, referrals)
@@ -39,9 +39,10 @@ Focus on:
 - employee lifecycle (joining to exit)
 - onboarding, engagement, policies
 - HR operations and compliance
-- exposure to HR processes beyond recruitment
 `,
-}[role] || ""
+}
+
+const roleInstructions = roleInstructionsMap[role] || ""
 
 const prompt = `
 You are an experienced HR recruiter reviewing a resume.
